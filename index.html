@@ -1,1 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شاشة الانتظار - عيادة التخصصات الطبية</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0b0f19;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .main-container {
+            background-color: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 20px;
+            padding: 30px;
+            width: 100%;
+            max-width: 850px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            text-align: center;
+        }
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #1f2937;
+            padding-bottom: 15px;
+        }
+        .clinic-title {
+            font-size: 24px;
+            color: #38bdf8;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+        .audio-btn {
+            background-color: #d97706;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .current-box {
+            background-color: #1f2937;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid #374151;
+        }
+        .current-label {
+            font-size: 18px;
+            color: #9ca3af;
+            margin-bottom: 10px;
+        }
+        .current-number {
+            font-size: 90px;
+            color: #4ade80;
+            font-weight: 800;
+            margin: 10px 0;
+            line-height: 1;
+        }
+        .patient-box {
+            background-color: #1f2937;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #374151;
+        }
+        .patient-name {
+            font-size: 36px;
+            color: #facc15;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+        .waiting-list-box {
+            background-color: #1f2937;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: right;
+            border: 1px solid #374151;
+        }
+        .waiting-title {
+            font-size: 16px;
+            color: #9ca3af;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        ul {
+            margin: 0;
+            padding-right: 20px;
+            color: #e5e7eb;
+            font-size: 16px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
 
+    <div class="main-container">
+        <div class="header-section">
+            <button class="audio-btn" onclick="alert('تم تفعيل نظام الصوت بنجاح')">🔊 تفعيل نظام الصوت</button>
+            <div class="clinic-title" id="clinicTitleDisplay">عيادة التخصصات الطبية</div>
+        </div>
+
+        <div class="current-box">
+            <div class="current-label">رقم الدور الحالي</div>
+            <div class="current-number" id="currentNumber">0</div>
+        </div>
+
+        <div class="patient-box">
+            <div class="current-label">المريض المستدعى حالياً</div>
+            <div class="patient-name" id="currentPatient">---</div>
+        </div>
+
+        <div class="waiting-list-box">
+            <div class="waiting-title">قائمة الانتظار القادمة:</div>
+            <ul id="waitingListContainer">
+                <li>لا توجد أسماء في الانتظار حالياً</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on('update-queue', function(data) {
+            document.getElementById('currentNumber').innerText = data.number || 0;
+            document.getElementById('currentPatient').innerText = data.patientName || '---';
+            if(data.clinicName) {
+                document.getElementById('clinicTitleDisplay').innerText = data.clinicName;
+            }
+
+            const listContainer = document.getElementById('waitingListContainer');
+            listContainer.innerHTML = '';
+            
+            if (data.waitingList && data.waitingList.length > 0) {
+                data.waitingList.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerText = item;
+                    listContainer.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.innerText = 'لا توجد أسماء في الانتظار حالياً';
+                listContainer.appendChild(li);
+            }
+        });
+    </script>
+</body>
+</html>

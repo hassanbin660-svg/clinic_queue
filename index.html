@@ -2,116 +2,47 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>شاشة الانتظار الطبية الذكية</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الطبيبة</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f172a; color: #f8fafc; height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center; overflow: hidden; transition: background 0.4s; }
-        .container { background: #1e293b; padding: 40px; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); width: 750px; text-align: center; position: relative; border: 1px solid #334155; }
-        
-        /* تأثير الوميض البصري عند نداء مريض جديد */
-        .flash-effect { background: #047857 !important; transition: background 0.2s ease-in-out; }
-
-        #clinic-name { color: #38bdf8; font-size: 24px; font-weight: bold; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px; }
-        .number-box { background: #0f172a; border-radius: 16px; padding: 20px; margin: 15px 0; border: 2px solid #3b82f6; }
-        .number-label { font-size: 18px; color: #94a3b8; }
-        #current-number { font-size: 90px; color: #4ade80; font-weight: bold; margin: 5px 0; }
-        
-        .patient-box { background: #334155; padding: 15px; border-radius: 12px; margin-top: 15px; }
-        .patient-label { font-size: 15px; color: #cbd5e1; }
-        #patient-name { font-size: 34px; color: #facc15; font-weight: bold; margin-top: 5px; }
-
-        .waiting-section { margin-top: 25px; text-align: right; background: #0f172a; padding: 15px; border-radius: 12px; }
-        .waiting-title { font-size: 14px; color: #94a3b8; margin-bottom: 8px; font-weight: bold; }
-        #waiting-list { font-size: 16px; color: #e2e8f0; margin: 0; padding-right: 20px; }
-        
-        #enable-audio-btn { position: absolute; top: 20px; left: 20px; background: #f97316; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10; }
-        #enable-audio-btn:hover { background: #ea580c; }
+        body { font-family: Tahoma, sans-serif; background: #f4f7f6; text-align: center; padding: 50px; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); display: inline-block; width: 400px; }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
     </style>
 </head>
 <body>
-    <div class="container" id="main-container">
-        <button id="enable-audio-btn" onclick="activateAudio()">🔊 تفعيل نظام الصوت</button>
-
-        <div id="clinic-name">جاري تحميل اسم العيادة...</div>
-        
-        <div class="number-box">
-            <div class="number-label">رقم الدور الحالي</div>
-            <div id="current-number">0</div>
-        </div>
-
-        <div class="patient-box">
-            <div class="patient-label">المريض المستدعى حالياً:</div>
-            <div id="patient-name">---</div>
-        </div>
-
-        <div class="waiting-section">
-            <div class="waiting-title">قائمة الانتظار القادمة:</div>
-            <ul id="waiting-list">
-                <li>لا توجد أرقام منتظرة حالياً</li>
-            </ul>
-        </div>
+    <div class="container">
+        <h2>لوحة تحكم العيادة</h2>
+        <input type="text" id="patientName" placeholder="أدخل اسم المريض">
+        <input type="number" id="queueNumber" placeholder="رقم الدور">
+        <button onclick="updateQueue()">تحديث وإعلان الدور</button>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
 
-        function activateAudio() {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-                const testUtterance = new SpeechSynthesisUtterance("تم تفعيل نظام الصوت بنجاح");
-                testUtterance.lang = 'ar-SA';
-                window.speechSynthesis.speak(testUtterance);
-                alert("تم تفعيل الصوت بنجاح!");
+        function updateQueue() {
+            const name = document.getElementById('patientName').value;
+            const number = document.getElementById('queueNumber').value;
+
+            if (!name || !number) {
+                alert('الرجاء إدخال الاسم ورقم الدور');
+                return;
             }
+
+            const data = {
+                number: number,
+                patientName: name,
+                waitingList: []
+            };
+
+            // إرسال البيانات للسيرفر
+            socket.emit('update-queue', data);
+            alert('تم التحديث وإرسال الاسم للشاشة بنجاح!');
         }
-
-        // دالة نطق الاسم ورقم الدور معاً بأسلوب طبي رسمي واحترافي
-        function speakTicket(ticketNumber, patientName) {
-            if (!('speechSynthesis' in window)) return;
-            window.speechSynthesis.cancel();
-
-            // صياغة الجملة لتشمل الاسم ورقم الدور بوضوح تام
-            const cleanName = patientName.replace(/⭐/g, '').replace(/\[.*?\]/g, '').trim();
-            const text = `المريض، ${cleanName}، برجاء التوجه إلى العيادة، رقم الدور، ${ticketNumber}`;
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'ar-SA';
-            utterance.rate = 0.82; // سرعة هادئة ووقورة جداً
-            utterance.pitch = 0.9;  // طبقة صوت أثقل وأكثر رجولية ووضوحاً
-            utterance.volume = 1.0;
-
-            window.speechSynthesis.speak(utterance);
-
-            // تفعيل الوميض البصري للشاشة
-            const container = document.getElementById('main-container');
-            container.classList.add('flash-effect');
-            setTimeout(() => { container.classList.remove('flash-effect'); }, 1200);
-        }
-
-        socket.on('updateQueue', (data) => {
-            document.getElementById('current-number').innerText = data.currentTicketNumber;
-            document.getElementById('clinic-name').innerText = data.clinicName;
-            document.getElementById('patient-name').innerText = data.patientName;
-
-            const waitingUl = document.getElementById('waiting-list');
-            waitingUl.innerHTML = '';
-            if (data.waitingList && data.waitingList.length > 0) {
-                data.waitingList.forEach(item => {
-                    const li = document.createElement('li');
-                    li.innerText = `الدور رقم (${item.number}) - ${item.name}`;
-                    waitingUl.appendChild(li);
-                });
-            } else {
-                waitingUl.innerHTML = '<li>لا توجد أرقام منتظرة حالياً</li>';
-            }
-        });
-
-        // استقبال إشارة التشغيل مع تمرير الاسم ورقم الدور للصوت
-        socket.on('playAlert', (data) => {
-            if (data && data.currentTicketNumber !== undefined) {
-                speakTicket(data.currentTicketNumber, data.patientName);
-            }
-        });
     </script>
 </body>
 </html>

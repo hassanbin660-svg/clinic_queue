@@ -2,95 +2,46 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>لوحة التحكم الطبية الاحترافية</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الطبيبة</title>
+    <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; text-align: center; background-color: #0b0f19; margin: 0; padding-top: 30px; color: #f8fafc; }
-        .control-box { background: #111827; padding: 30px; border-radius: 18px; display: inline-block; box-shadow: 0 15px 40px rgba(0,0,0,0.6); width: 520px; text-align: right; border: 1px solid #1f2937; }
-        h1 { color: #38bdf8; font-size: 22px; margin-bottom: 20px; text-align: center; }
-        label { font-size: 14px; color: #9ca3af; display: block; margin-bottom: 6px; font-weight: bold; }
-        input[type="text"] { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #1f2937; color: white; margin-bottom: 15px; box-sizing: border-box; font-size: 15px; }
-        .number-display { font-size: 50px; color: #fbbf24; font-weight: bold; text-align: center; margin: 5px 0 20px 0; }
-        .btn-container { display: flex; gap: 10px; justify-content: center; margin-top: 10px; }
-        .btn { background-color: #059669; color: white; border: none; padding: 12px; font-size: 15px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; transition: 0.2s; }
-        .btn:hover { background-color: #047857; }
-        .btn-vip { background-color: #d97706; }
-        .btn-vip:hover { background-color: #b45309; }
-        .btn-reset { background-color: #dc2626; flex: none; width: 100%; margin-top: 10px; }
-        .btn-reset:hover { background-color: #b91c1c; }
-        .btn-update { background-color: #0284c7; width: 100%; margin-bottom: 10px; }
-        .btn-update:hover { background-color: #0369a1; }
-        .section-divider { border-top: 1px solid #374151; margin: 20px 0; }
-        .error-msg { color: #f87171; font-size: 12px; margin-top: -10px; margin-bottom: 10px; display: none; }
+        body { font-family: Tahoma, sans-serif; background: #f4f7f6; text-align: center; padding: 50px; }
+        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); display: inline-block; width: 400px; }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
     </style>
 </head>
 <body>
-    <div class="control-box">
-        <h1>إدارة الطابور الطبي المتقدم</h1>
-        
-        <label for="clinicNameInput">اسم العيادة / الطبيب:</label>
-        <input type="text" id="clinicNameInput" placeholder="أدخل اسم العيادة..." oninput="validateClinicName(this)">
-        <div id="nameError" class="error-msg">عذراً، يمنع إدخال الأرقام في اسم العيادة!</div>
-        <button class="btn btn-update" onclick="updateName()">تحديث اسم العيادة 💾</button>
-
-        <div class="section-divider"></div>
-
-        <label for="patientNameInput">اسم المريض القادم:</label>
-        <input type="text" id="patientNameInput" placeholder="أدخل اسم المريض الثلاثي...">
-
-        <div style="text-align: center; font-size: 14px; color: #9ca3af;">رقم الدور الحالي:</div>
-        <div id="current-number" class="number-display">0</div>
-        
-        <div class="btn-container">
-            <button class="btn" onclick="nextPatient(false)">العميل التالي ➡</button>
-            <button class="btn btn-vip" onclick="nextPatient(true)">🚨 حالة طارئة / VIP</button>
-        </div>
-
-        <button class="btn btn-reset" onclick="resetQueue()">تصفير الطابور بالكامل 🔄</button>
+    <div class="container">
+        <h2>لوحة تحكم العيادة</h2>
+        <input type="text" id="patientName" placeholder="أدخل اسم المريض">
+        <input type="number" id="queueNumber" placeholder="رقم الدور">
+        <button onclick="updateQueue()">تحديث وإعلان الدور</button>
     </div>
 
-    <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
 
-        function validateClinicName(input) {
-            const errorDiv = document.getElementById('nameError');
-            if (/\d/.test(input.value)) {
-                input.value = input.value.replace(/\d/g, '');
-                errorDiv.style.display = 'block';
-                setTimeout(() => { errorDiv.style.display = 'none'; }, 3000);
-            }
-        }
+        function updateQueue() {
+            const name = document.getElementById('patientName').value;
+            const number = document.getElementById('queueNumber').value;
 
-        socket.on('updateQueue', (data) => {
-            document.getElementById('current-number').innerText = data.currentTicketNumber;
-            const clinicInput = document.getElementById('clinicNameInput');
-            if (document.activeElement !== clinicInput) {
-                clinicInput.value = data.clinicName;
+            if (!name || !number) {
+                alert('الرجاء إدخال الاسم ورقم الدور');
+                return;
             }
-        });
 
-        function updateName() {
-            const newName = document.getElementById('clinicNameInput').value.trim();
-            if(newName !== "") {
-                socket.emit('updateClinicName', newName);
-                alert('تم تحديث اسم العيادة بنجاح!');
-            } else {
-                alert('الرجاء كتابة اسم صحيح للعيادة.');
-            }
-        }
+            const data = {
+                number: number,
+                patientName: name,
+                waitingList: []
+            };
 
-        function nextPatient(isVip) {
-            const pNameInput = document.getElementById('patientNameInput');
-            const pName = pNameInput.value.trim();
-            
-            socket.emit('nextPatient', { patientName: pName, isVip: isVip });
-            pNameInput.value = '';
-        }
-
-        function resetQueue() {
-            if(confirm('هل أنت متأكد من تصفير الطابور وإعادة العد من الصفر؟')) {
-                socket.emit('resetQueue');
-            }
+            // إرسال البيانات للسيرفر
+            socket.emit('update-queue', data);
+            alert('تم التحديث وإرسال الاسم للشاشة بنجاح!');
         }
     </script>
 </body>
